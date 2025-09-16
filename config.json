@@ -1,0 +1,98 @@
+{
+  "project_name": "Face Restoration: GFPGAN vs CodeFormer",
+  "visibility": "public",
+  "license": "MIT",
+  "contributors": [
+    {"name": "Monica Stef", "role": "co-author"},
+    {"name": "Enqi Liang", "role": "co-author"},
+    {"name": "Aidan Sibley", "role": "co-author"}
+  ],
+  "stack": {
+    "language": "Python>=3.10,<3.12",
+    "framework": "PyTorch",
+    "versions": {
+      "torch": "2.3.1",
+      "torchvision": "0.18.1",
+      "cuda": ["11.8", "12.1"],
+      "python_packages": {
+        "facenet-pytorch": "2.6.0",
+        "lpips": "0.1.4",
+        "opencv-python": "4.10.0.84",
+        "scikit-image": "0.24.0",
+        "pandas": "2.2.2",
+        "PyYAML": "6.0.2",
+        "tqdm": "4.66.4",
+        "matplotlib": "3.9.0",
+        "pillow": "10.4.0"
+      }
+    },
+    "env_management": "conda",
+    "env_file": "env.yml",
+    "determinism": {
+      "seed": 1337,
+      "torch.backends.cudnn.benchmark": false,
+      "torch.backends.cudnn.deterministic": true,
+      "numpy_seed": 1337,
+      "python_hash_seed": "0"
+    },
+    "execution_targets": ["Local GPU", "Google Colab", "Kaggle", "CPU Fallback"]
+  },
+  "upstreams": {
+    "gfpgan": {
+      "repo": "https://github.com/TencentARC/GFPGAN",
+      "default_checkpoint": "GFPGANv1.4",
+      "commit_pin": "to-fill"
+    },
+    "codeformer": {
+      "repo": "https://github.com/sczhou/CodeFormer",
+      "default_checkpoint": "codeformer-v0.1.0",
+      "commit_pin": "to-fill",
+      "fidelity_knob": {"name": "w", "range": [0.3, 0.9], "default": 0.5}
+    }
+  },
+  "data": {
+    "roots": {
+      "raw": "data/raw",
+      "processed": "data/processed",
+      "historical": "data/historical",
+      "manifests": "data/manifests"
+    },
+    "alignment": {
+      "detector": "MTCNN",
+      "params": {"image_size": 256, "margin": 20, "postprocess": "center-crop-then-resize"},
+      "policy": "same pipeline for input and restored outputs before metrics"
+    },
+    "degradations": {
+      "presets": [
+        {"name": "gauss_blur_sigma_0.5", "type": "gaussian_blur", "sigma": 0.5},
+        {"name": "gauss_blur_sigma_1.0", "type": "gaussian_blur", "sigma": 1.0},
+        {"name": "jpeg_q10", "type": "jpeg", "quality": 10},
+        {"name": "jpeg_q30", "type": "jpeg", "quality": 30},
+        {"name": "noise_sigma_5", "type": "gaussian_noise", "sigma": 5.0},
+        {"name": "noise_sigma_15", "type": "gaussian_noise", "sigma": 15.0}
+      ],
+      "seed": 1337,
+      "output_size": 256
+    },
+    "manifests": {
+      "schema_csv": ["id", "path_gt", "path_deg", "degradation", "split"]
+    },
+    "governance": {
+      "license_requirement": "public-domain or permissive",
+      "pii_policy": "no non-consensual personal photos; anonymize filenames; keep urls.txt"
+    }
+  },
+  "evaluation": {
+    "paired_metrics": ["PSNR", "SSIM", "LPIPS"],
+    "unpaired_metrics": ["ArcFaceCosine"],
+    "tables": {"dir": "results/tables", "schema_csv": ["method", "preset", "metric", "mean", "std", "n"]},
+    "figures": {"dir": "results/figures", "order": ["input", "gfpgan", "codeformer"]}
+  },
+  "experiments": {
+    "matrix": {
+      "methods": ["gfpgan", "codeformer"],
+      "degradations": ["gauss_blur_sigma_0.5", "gauss_blur_sigma_1.0", "jpeg_q10", "jpeg_q30", "noise_sigma_5", "noise_sigma_15"],
+      "codeformer_fidelity_w": [0.3, 0.5, 0.7, 0.9]
+    }
+  }
+}

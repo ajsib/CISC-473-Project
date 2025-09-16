@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.env
+.ipynb_checkpoints/
+# Data/Results
+data/raw/
+data/processed/
+results/outputs/
+results/logs/
+# OS/Editors
+.DS_Store
+Thumbs.db
+# Conda
+*.conda
+*.lock
