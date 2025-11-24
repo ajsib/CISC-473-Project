@@ -5,7 +5,7 @@ Aidan Sibley
 
 ---
 
-S0 OVERVIEW
+## S0 OVERVIEW
 
 * PURPOSE: Comparative study between GFPGAN (TencentARC) and CodeFormer (Zhou et al.) for face restoration
 * DATASET: CelebA aligned (single source, no historicals)
@@ -15,11 +15,11 @@ S0 OVERVIEW
 
 [ADD: simple diagram later showing linear pipeline S1→S7]
 
-![Figure 1](<Untitled diagram-2025-10-16-215200.png>)
+![**S0** Overall Pipeline Architecture - Data flow from source to metrics and visualization.](./stage-diagrams/image.png)
 
 ---
 
-S1 DATA INGESTION
+## S1 DATA INGESTION
 
 * INPUT: ./data/img_align_celeba + metadata CSVs
 * PURPOSE: Hold immutable aligned faces for all downstream stages
@@ -34,9 +34,11 @@ S1 DATA INGESTION
 
 [SUGGESTION: add checksum or manifest log for reproducibility]
 
+![**S1** Data Stage - Structure of CelebA dataset and annotation CSVs.](./stage-diagrams/image-1.png)
+
 ---
 
-S2 FACE ALIGNMENT / STANDARDIZATION
+## S2 FACE ALIGNMENT / STANDARDIZATION
 
 * INPUT: images + landmark CSV
 * PURPOSE: ensure all faces are spatially consistent (256×256 crops)
@@ -47,9 +49,11 @@ S2 FACE ALIGNMENT / STANDARDIZATION
 [SUGGESTION: skip for midterm if existing alignment sufficient]
 [SUGGESTION: if re-align, add deterministic seed + log file]
 
+![**S2** Alignment Stage - Optional re-alignment and normalization of face crops.](./stage-diagrams/image-2.png)
+
 ---
 
-S3 SYNTHETIC DEGRADATION
+## S3 SYNTHETIC DEGRADATION
 
 * INPUT: aligned faces from S2
 * PURPOSE: create low-quality (LQ) versions for restoration input
@@ -63,11 +67,14 @@ S3 SYNTHETIC DEGRADATION
 [SUGGESTION: start with one preset (blur+jpeg) before adding more]
 [SUGGESTION: record seed and RNG for exact reproducibility]
 
+![**S3** Degradation Stage - Synthetic generation of low-quality inputs with controlled](./stage-diagrams/image-3.png)
+
 ---
 
-S4A INFERENCE — GFPGAN
+## S4A INFERENCE — GFPGAN
 
 * MODEL: TencentARC/GFPGANv1 (official pretrained, CVPR 2021)
+  
 * INPUT: LQ images (from S3)
 * PURPOSE: perform blind face restoration using StyleGAN2-based prior
 * SCRIPT: src/run_gfpgan.py
@@ -78,11 +85,15 @@ S4A INFERENCE — GFPGAN
 [SUGGESTION: add option for upscale factor = 2]
 [SUGGESTION: optional parameter config via config.json]
 
+
+![**S4A** GFPGAN Restoration - Inference using pretrained TencentARC/GFPGANv1.](./stage-diagrams/image-4.png)
+
 ---
 
-S4B INFERENCE — CODEFORMER
+## S4B INFERENCE — CODEFORMER
 
 * MODEL: sczhou/CodeFormer (transformer architecture with fidelity knob w)
+  
 * INPUT: same LQ dataset from S3
 * PURPOSE: produce restored outputs at varying fidelity-quality balance (0≤w≤1)
 * SCRIPT: src/run_codeformer.py
@@ -91,9 +102,11 @@ S4B INFERENCE — CODEFORMER
 [SUGGESTION: test w values {0.3, 0.5, 0.7, 1.0}]
 [SUGGESTION: align naming with GFPGAN outputs for easy comparison]
 
+![**S4B** CodeFormer Restoration - Inference using pretrained sczhou/CodeFormer with fidelity sweep.](./stage-diagrams/image-5.png)
+
 ---
 
-S5 METRICS EVALUATION
+## S5 METRICS EVALUATION
 
 * PURPOSE: quantify differences between model outputs and ground truth
 * INPUT: GT from S2, outputs from S4A/B, mapping pairs.csv
@@ -109,9 +122,11 @@ S5 METRICS EVALUATION
 [SUGGESTION: keep aggregate means + stddev for each preset/model]
 [SUGGESTION: identity metric can also confirm if model hallucinated features]
 
+![**S5** Metrics Evaluation - Computation of pixel, perceptual, and identity metrics.](./stage-diagrams/image-6.png)
+
 ---
 
-S6 VISUALIZATION AND FIGURE GENERATION
+## S6 VISUALIZATION AND FIGURE GENERATION
 
 * PURPOSE: produce side-by-side panels and metric plots
 * INPUT: selected outputs + GT + tables
@@ -122,9 +137,15 @@ S6 VISUALIZATION AND FIGURE GENERATION
 [SUGGESTION: start with one panel (GT, LQ, GFPGAN, CodeFormer w=0.5)]
 [SUGGESTION: add bar plots for average LPIPS and ArcFace cosine]
 
+
+
+![**S6** Visualization Stage - Generation of comparative panels and metric plots.](./stage-diagrams/image-7.png)
+
+
+
 ---
 
-S7 LOGGING AND CONFIGURATION
+## S7 LOGGING AND CONFIGURATION
 
 * PURPOSE: maintain deterministic reproducibility
 * FILES:
@@ -135,21 +156,21 @@ S7 LOGGING AND CONFIGURATION
 [SUGGESTION: include git commit hash + timestamp at each run]
 [SUGGESTION: add checksum of pretrained weights if time allows]
 
----
+![**S7** Logging and Reproducibility - Provenance, configuration capture, and run manifests.](./stage-diagrams/image-8.png)
 
-S8 OPTIONAL EXTENSIONS
-
-* RE-ALIGN HISTORICAL PHOTOS for qualitative only [OPTIONAL POST-MIDTERM]
-* SMALL USER STUDY using restored outputs [OPTIONAL LATE STAGE]
-* ADD FID SCORE for perceptual diversity [OPTIONAL IF GPU TIME ALLOWS]
 
 ---
+
 
 NOTES ON MODEL CHOICE
 
 * GFPGANv1 (TencentARC) → generative prior from StyleGAN2, excels at realistic detail
+  * Why this model?
+    Most stable, penetrated release using a StyleGAN2 prior (known for producing realistic, detailed textures with minimal artifacts). Version 1,4 improves upon v1.3 with better detail and identity consistency, while being easy to run without retraining.
 * CodeFormer (Zhou et al.) → transformer with fidelity-quality tradeoff
 * Combined comparison exposes trade-offs between GAN-based realism and transformer-based fidelity
+  * Why this model?
+    Because of its transformer based architecture and fidelity knob (w) which allows fine-grained control between perceptual quality and identity accuracy. It represents a more modern, transformer-driven alternative to GAN priors, ideal for comparative analysis.
 
 [SUGGESTION: capture both quantitative and perceptual contrasts, not just scores]
 
@@ -166,4 +187,3 @@ NEXT STEPS
 [ADD: short paragraph summary of observations once first batch complete]
 [KEEP: this document as a running plan → update stage status as completed]
 
-```
