@@ -15,7 +15,6 @@
       "torchvision": "0.18.1",
       "cuda": ["11.8", "12.1"],
       "python_packages": {
-        "facenet-pytorch": "2.6.0",
         "lpips": "0.1.4",
         "opencv-python": "4.10.0.84",
         "scikit-image": "0.24.0",
@@ -23,7 +22,11 @@
         "PyYAML": "6.0.2",
         "tqdm": "4.66.4",
         "matplotlib": "3.9.0",
-        "pillow": "10.4.0"
+        "pillow": "10.2.0",
+        "numpy": "1.26.4",
+        "gfpgan": "1.3.8",
+        "facexlib": "0.3.0",
+        "realesrgan": "0.3.0"
       }
     },
     "env_management": "conda",
@@ -58,9 +61,13 @@
       "manifests": "data/manifests"
     },
     "alignment": {
-      "detector": "MTCNN",
-      "params": { "image_size": 256, "margin": 20, "postprocess": "center-crop-then-resize" },
-      "policy": "same pipeline for input and restored outputs before metrics"
+      "detector": "NONE",
+      "params": {
+        "expected_width": 178,
+        "expected_height": 218,
+        "postprocess": "none"
+      },
+      "policy": "CelebA-aligned geometry is accepted as canonical; no re-alignment performed"
     },
     "degradations": {
       "presets": [
@@ -72,7 +79,7 @@
         { "name": "noise_sigma_15", "type": "gaussian_noise", "sigma": 15.0 }
       ],
       "seed": 1337,
-      "output_size": 256
+      "output_size": null
     },
     "manifests": {
       "schema_csv": ["id", "path_gt", "path_deg", "degradation", "split"]
@@ -109,23 +116,27 @@
     }
   },
   "env": {
-    "python": {
-      "min": "3.10",
-      "max": "3.14"
-    },
+    "python": { "min": "3.10", "max": "3.11" },
     "dependencies": {
-      "torch": "",
-      "torchvision": "",
-      "facenet-pytorch": "",
-      "lpips": "",
-      "opencv-python": "",
-      "scikit-image": "",
-      "pandas": "",
-      "PyYAML": "",
-      "tqdm": "",
-      "matplotlib": "",
-      "pillow": "",
-      "numpy": ""
+      "torch": "1.13.1+cpu",
+      "torchvision": "0.14.1+cpu",
+
+      "numpy": "1.26.4",
+      "pillow": "10.2.0",
+      "opencv-python": "4.10.0.84",
+      "pandas": "2.2.2",
+      "scikit-image": "0.24.0",
+
+      "PyYAML": "6.0.2",
+      "tqdm": "4.66.4",
+      "matplotlib": "3.9.0",
+
+      "lpips": "0.1.4",
+
+      "facexlib": "0.3.0",
+      "gfpgan": "1.3.8",
+      "realesrgan": "0.3.0"
+
     }
   }
 }

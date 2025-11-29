@@ -3,7 +3,36 @@ import importlib
 import os
 import shutil
 import sys
+from pathlib import Path
 from typing import List
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _venv_python() -> Path:
+    v = _project_root() / ".venv"
+    return v / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+
+def _in_venv() -> bool:
+    # Works for both venv and virtualenv
+    return (
+        hasattr(sys, "real_prefix")
+        or (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix)
+        or os.environ.get("VIRTUAL_ENV")
+    )
+
+
+def _maybe_reexec_into_venv():
+    vp = _venv_python()
+    # If .venv exists and we are not running inside it, re-exec the CLI under .venv/python
+    if vp.is_file() and not _in_venv():
+        os.execv(str(vp), [str(vp), "-m", "src.cli.main", *sys.argv[1:]])
+
+
+_maybe_reexec_into_venv()
 
 from src.utils.config import load_config
 from src.utils.logging import get_logger
@@ -74,27 +103,26 @@ def pause() -> None:
     input("\nPress Enter to return to the menu...")
 
 
-def _get_stage_func(stage_name: str):
-    """Lazy-import the stage module and return its `run` function."""
-    if stage_name not in STAGE_MODULES:
-        raise KeyError(f"Unknown stage: {stage_name}")
-    module_path = STAGE_MODULES[stage_name]
-    module = importlib.import_module(module_path)
-    if not hasattr(module, "run"):
-        raise AttributeError(f"Stage module '{module_path}' has no 'run' function")
-    return module.run
-
-
 def run_stage(stage_name: str, config) -> None:
     logger = get_logger("CLI")
+    if stage_name not in STAGE_MODULES:
+        logger.error("Unknown stage: %s", stage_name)
+        raise SystemExit(1)
+
+    mod_path = STAGE_MODULES[stage_name]
     try:
-        stage_func = _get_stage_func(stage_name)
+        mod = importlib.import_module(mod_path)
+        mod = importlib.reload(mod)
+        # Reload sibling utils if already imported to avoid stale helpers
+        pkg_name = mod_path.rsplit(".", 1)[0] + ".utils"
+        if pkg_name in sys.modules:
+            importlib.reload(sys.modules[pkg_name])
     except Exception as e:
         logger.error("Failed to load stage '%s': %s", stage_name, e)
         raise SystemExit(1)
 
     logger.info("=== START %s ===", stage_name.upper())
-    stage_func(config)
+    getattr(mod, "run")(config)
     logger.info("=== END   %s ===", stage_name.upper())
 
 
