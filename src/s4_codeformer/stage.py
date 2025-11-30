@@ -2,7 +2,6 @@ import os
 from collections import defaultdict
 
 import pandas as pd
-from PIL import Image
 
 from src.utils.logging import get_logger
 from src.s4_codeformer.utils.io import (
@@ -19,9 +18,9 @@ def run(config):
     logger = get_logger("S4_CF")
     logger.info("S4B: CodeFormer inference stage started.")
 
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Load S3 manifest
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     s3_manifest = os.path.join("results", "logs", "s3_degrade_manifest.csv")
     df = read_manifest_csv(s3_manifest)
 
@@ -30,9 +29,9 @@ def run(config):
         logger.error("S4B: S3 manifest is empty: %s", s3_manifest)
         raise SystemExit(1)
 
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Output locations
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     outputs_root = os.path.join("results", "outputs", "codeformer")
     logs_root = os.path.join("results", "logs")
     ensure_dir(outputs_root)
@@ -40,9 +39,9 @@ def run(config):
 
     s4_manifest_path = os.path.join(logs_root, "s4_codeformer_manifest.csv")
 
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Load model + fidelity sweep settings
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     cfg_cf = config.get("upstreams", {}).get("codeformer", {})
     ckpt_name = cfg_cf.get("default_checkpoint", "codeformer-v0.1.0")
 
@@ -59,9 +58,9 @@ def run(config):
 
     logger.info("S4B: Fidelity sweep will run on w values: %s", fidelity_grid)
 
-    # ------------------------------------------------------------
-    # Group by preset
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Group by degradation preset
+    # ------------------------------------------------------------------
     by_preset = defaultdict(list)
     for row in df.itertuples(index=False):
         by_preset[getattr(row, "degradation")].append(row)
@@ -72,11 +71,12 @@ def run(config):
         total_rows,
     )
 
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Per-preset × fidelity inference
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     manifest_rows = []
     processed_total = 0
+    target_total = total_rows * max(len(fidelity_grid), 1)
 
     for preset, rows in by_preset.items():
         logger.info("S4B: Processing preset '%s' with %d images.", preset, len(rows))
@@ -98,7 +98,7 @@ def run(config):
                 path_deg = getattr(row, "path_deg")
                 split = int(getattr(row, "split"))
 
-                # Load LQ input
+                # Load degraded input
                 try:
                     img_in = load_image_rgb(path_deg)
                 except Exception as e:
@@ -141,14 +141,14 @@ def run(config):
                     logger.info(
                         "S4B: Processed %d / %d total samples...",
                         processed_total,
-                        total_rows * len(fidelity_grid),
+                        target_total,
                     )
 
         logger.info("S4B: Finished preset '%s'.", preset)
 
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Write manifest
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     if not manifest_rows:
         logger.error("S4B: No outputs produced; manifest would be empty.")
         raise SystemExit(1)
@@ -168,9 +168,9 @@ def run(config):
     pd.DataFrame(manifest_rows, columns=cols).to_csv(s4_manifest_path, index=False)
     logger.info("S4B: Wrote manifest: %s (rows=%d)", s4_manifest_path, len(manifest_rows))
 
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Sanity: check outputs exist
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------------
     restored_paths = [r["path_restored"] for r in manifest_rows]
     exist_n = count_existing(restored_paths)
     if exist_n != len(restored_paths):
