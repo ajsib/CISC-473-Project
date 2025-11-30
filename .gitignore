@@ -12,6 +12,7 @@ data/processed/
 gfpgan
 results/outputs/
 results/logs/
+weights/
 # OS/Editors
 .DS_Store
 Thumbs.db

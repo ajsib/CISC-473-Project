@@ -215,6 +215,8 @@ def load_codeformer(
         codebook_size=1024,
     )
 
+
+
     ckpt = torch.load(model_path, map_location=device)
 
     if "params_ema" in ckpt:
@@ -235,28 +237,31 @@ def load_codeformer(
     return {"net": net, "device": device}
 
 
-def run_codeformer(
-    model: Dict[str, Any],
-    img_pil: Image.Image,
-    fidelity: float,
-) -> Image.Image:
-    """
-    Run CodeFormer on a single PIL RGB image with given fidelity w in [0,1].
-    Returns a PIL RGB image.
-    """
+def run_codeformer(model, img_pil, fidelity):
     import torch
     from torchvision import transforms
-
     net = model["net"]
     device = model["device"]
 
-    to_tensor = transforms.ToTensor()
-    x = to_tensor(img_pil).unsqueeze(0).to(device)
+    orig_w, orig_h = img_pil.size
+    target_size = 512
+
+    if img_pil.size != (target_size, target_size):
+        img_in = img_pil.resize((target_size, target_size), Image.BICUBIC)
+    else:
+        img_in = img_pil
+
+    x = transforms.ToTensor()(img_in).unsqueeze(0).to(device)
 
     with torch.no_grad():
-        out = net(x, w=fidelity)[0]
+        out_tensor, _, _ = net(x, w=fidelity, adain=True)
 
-    out = out.clamp(0, 1).cpu().numpy()
-    out = (out.transpose(1, 2, 0) * 255).astype(np.uint8)
+    # out_tensor: (B,3,H,W)
+    out_tensor = out_tensor[0].clamp(0,1)
+    out_np = (out_tensor.permute(1,2,0).cpu().numpy() * 255).astype(np.uint8)
+    img_out = Image.fromarray(out_np, "RGB")
 
-    return Image.fromarray(out, "RGB")
+    if img_out.size != (orig_w, orig_h):
+        img_out = img_out.resize((orig_w, orig_h), Image.BICUBIC)
+
+    return img_out

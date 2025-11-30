@@ -62,7 +62,7 @@ def run(config):
     validate_partitions(metadata_frames["partition"])
 
     # 7.5. Prompt for pruning size
-    min_size = 100
+    min_size = 2
     max_size = len(image_filenames)
     prune_input = input(f"S1: Enter sample/prune size (between {min_size} and {max_size}, or Enter for full set): ").strip()
     sample_size = None

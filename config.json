@@ -63,11 +63,12 @@
     "alignment": {
       "detector": "NONE",
       "params": {
-        "expected_width": 178,
-        "expected_height": 218,
+        "raw_width": 178,
+        "raw_height": 218,
+        "image_size": 256,
         "postprocess": "none"
       },
-      "policy": "CelebA-aligned geometry is accepted as canonical; no re-alignment performed"
+      "policy": "S2A performs one-time similarity alignment and resizes CelebA (178x218) to canonical 256x256."
     },
     "degradations": {
       "presets": [

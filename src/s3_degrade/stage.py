@@ -43,9 +43,9 @@ def run(config):
     logger.info("S3: Synthetic degradation stage started.")
 
     # Inputs come from S1-pruned CelebA-aligned images
-    s1_root = os.path.join("results", "outputs", "s1-validated-pruned-dataset")
-    aligned_root = os.path.join(s1_root, "img_align_celeba")
-    partition_csv = os.path.join(s1_root, "list_eval_partition.csv")
+    s2_root = os.path.join("results", "outputs", "s2-processed-size-bb")
+    aligned_root = os.path.join(s2_root, "img_align_celeba")
+    partition_csv = os.path.join(s2_root, "list_eval_partition.csv")
 
     if not os.path.isdir(aligned_root):
         logger.error("S3: Expected aligned root '%s' not found.", aligned_root)
